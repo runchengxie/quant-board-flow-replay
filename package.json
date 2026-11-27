@@ -1,0 +1,12 @@
+{
+  "name": "quant-board-flow-replay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Offline replay UI checks; no runtime JavaScript dependencies",
+  "scripts": {
+    "test": "node --test tests/ui*.mjs",
+    "test:browser": "node scripts/browser-smoke.mjs"
+  },
+  "devDependencies": { "playwright-core": "1.62.1" },
+  "engines": { "node": ">=22" }
+}

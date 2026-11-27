@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title></title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header class="masthead">
+    <div>
+      <p class="eyebrow" data-i18n="app.kicker"></p>
+      <h1 data-i18n="app.title"></h1>
+      <p class="subtitle" data-i18n="app.subtitle"></p>
+    </div>
+    <label class="language"><span data-i18n="control.language"></span>
+      <select id="language"><option value="en">English</option><option value="zh-CN">简体中文</option></select>
+    </label>
+  </header>
+  <p class="notice" data-i18n="notice.pit"></p>
+  <section class="controls">
+    <label><span data-i18n="control.day"></span><select id="day"></select></label>
+    <label><span data-i18n="control.type"></span><select id="kind">
+      <option value="concept" data-i18n="type.concept"></option>
+      <option value="industry" data-i18n="type.industry"></option>
+      <option value="region" data-i18n="type.region"></option>
+    </select></label>
+    <label><span data-i18n="control.window"></span><select id="win">
+      <option value="5" data-i18n="unit.minutes" data-count="5"></option>
+      <option value="15" data-i18n="unit.minutes" data-count="15" selected></option>
+      <option value="30" data-i18n="unit.minutes" data-count="30"></option>
+    </select></label>
+    <label><span data-i18n="control.mode"></span><select id="mode">
+      <option value="asof" data-i18n="mode.asof"></option>
+      <option value="overview" data-i18n="mode.overview"></option>
+    </select></label>
+    <label class="time-control"><span data-i18n="control.cursor"></span>
+      <output id="clock" for="minute"></output><input type="range" id="minute" min="0" max="239" value="0" step="1">
+    </label>
+  </section>
+  <p id="mode-hint" class="hint"></p>
+  <p id="status" class="status" role="status" aria-live="polite"></p>
+  <p id="warning" class="warning" role="status" hidden></p>
+  <div class="panels">
+    <section class="panel ranking-panel">
+      <h2 data-i18n="section.ranking"></h2>
+      <p id="scope" class="hint"></p>
+      <table><thead><tr><th data-i18n="table.board"></th><th data-i18n="table.delta"></th></tr></thead><tbody id="ranking"></tbody></table>
+      <p id="empty" class="empty" hidden data-i18n="status.emptyRanking"></p>
+    </section>
+    <section class="panel curve-panel">
+      <h2 data-i18n="section.curve"></h2>
+      <label class="search-label" for="lookup" data-i18n="control.board"></label>
+      <input id="lookup" type="search" list="boardlist" autocomplete="off">
+      <datalist id="boardlist"></datalist>
+      <h3 id="boardname"></h3><p id="value" class="numeric"></p>
+      <svg id="chart" viewBox="0 0 620 290" role="img"></svg>
+    </section>
+  </div>
+  <section class="provenance-panel">
+    <h2 data-i18n="section.provenance"></h2>
+    <p class="hint" data-i18n="provenance.timezone"></p>
+    <dl id="provenance"></dl>
+  </section>
+  <footer><p data-i18n="notice.overlap"></p><p data-i18n="footer.offline"></p></footer>
+</main>
+<script src="dates.js"></script>
+<script src="model.js"></script>
+<script src="locales.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
