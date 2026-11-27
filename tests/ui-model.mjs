@@ -105,3 +105,30 @@ test('catalog warning compares real instants, treating naive clocks as Shanghai'
   assert.equal(late('2026-11-19T23:25:00Z','2026-11-20','09:31'),false);
   assert.equal(late(null,'2026-11-20','09:31'),false);
 });
+
+test('watchlist keeps identity/order and does not substitute unavailable boards', () => {
+  const pins = [{code:'BK2',type:'concept'}, {code:'BK1',type:'industry'}];
+  const boards = [board('BK2',Array.from({length:240},(_,i)=>i*1e8))];
+  const rows = model('watchRows')(boards,pins,40,times);
+  assert.equal(rows[0].code,'BK2'); assert.equal(rows[0].deltas[5],5e8);
+  assert.equal(rows[0].deltas[15],15e8); assert.equal(rows[0].deltas[30],30e8);
+  assert.equal(rows[1].board,null); assert.equal(rows[1].deltas[5],null);
+});
+test('watchlist excludes gaps/lunch/future endpoints without turning them into zero', () => {
+  const b=board('BK1',Array.from({length:240},(_,i)=>i));
+  b.values[29]=null;
+  let rows=model('watchRows')([b],[{code:'BK1',type:'concept'}],40,times);
+  assert.equal(rows[0].deltas[5],5); assert.equal(rows[0].deltas[15],null);
+  rows=model('watchRows')([b],[{code:'BK1',type:'concept'}],120,times);
+  assert.equal(rows[0].deltas[5],null);
+  b.values[41]=1e20;
+  rows=model('watchRows')([b],[{code:'BK1',type:'concept'}],40,times);
+  assert.equal(rows[0].deltas[5],5);
+});
+test('saved watchlist accepts bounded unique identities, never stored historical names', () => {
+  const normalize=model('normalizePins');
+  assert.deepEqual(plain(normalize([{code:'BK1',type:'concept',name:'future name'},
+    {code:'BK1',type:'concept'}, {code:'BK2',type:'other'},null])),[{code:'BK1',type:'concept'}]);
+  assert.equal(normalize(Array.from({length:30},(_,i)=>({code:`BK${i}`,type:'industry'}))).length,12);
+  assert.deepEqual(plain(normalize({bad:true})),[]);
+});

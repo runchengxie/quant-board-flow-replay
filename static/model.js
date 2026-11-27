@@ -27,6 +27,31 @@
       .map(board => ({board, delta: board.values[cursor] - board.values[start]}))
       .sort((a, b) => b.delta - a.delta || byCode(a.board, b.board));
   }
+  function normalizePins(value) {
+    if (!Array.isArray(value)) return [];
+    const result = [], seen = new Set();
+    for (const item of value.slice(0, 100)) {
+      if (!item || !["concept", "industry", "region"].includes(item.type) ||
+          typeof item.code !== "string" || !/^BK[0-9]{1,12}$/.test(item.code)) continue;
+      const key = `${item.type}:${item.code}`;
+      if (seen.has(key)) continue;
+      seen.add(key); result.push({code: item.code, type: item.type});
+      if (result.length === 12) break;
+    }
+    return result;
+  }
+  function watchRows(boards, pins, cursor, times) {
+    return normalizePins(pins).map(pin => {
+      const board = boards.find(item => item.code === pin.code && item.type === pin.type) || null;
+      const deltas = {};
+      for (const minutes of [5, 15, 30]) {
+        const start = windowStart(times, cursor, minutes);
+        deltas[minutes] = board && start >= 0 && board.values.length > cursor &&
+          board.values.slice(start, cursor + 1).every(finite) ? board.values[cursor] - board.values[start] : null;
+      }
+      return {...pin, board, deltas};
+    });
+  }
   function chartModel(board, cursor, mode) {
     const empty = {min: 0, max: 0, segments: [], current: null};
     if (!board || !Array.isArray(board.values) || !Number.isInteger(cursor) ||
@@ -86,5 +111,5 @@
       }
     };
   }
-  root.ReplayModel = Object.freeze({windowStart, rank, chartModel, axisLabels, catalogAfterCursor, selectBoard, createDayLoader});
+  root.ReplayModel = Object.freeze({windowStart, rank, chartModel, axisLabels, catalogAfterCursor, selectBoard, createDayLoader, normalizePins, watchRows});
 })(window);

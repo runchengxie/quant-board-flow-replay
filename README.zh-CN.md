@@ -26,3 +26,5 @@ uv run --locked --no-dev board-flow-replay build --archive "$BOARD_FLOW_ARCHIVE"
 
 详见[使用与口径](docs/usage.zh-CN.md)、[归档契约](docs/archive-contract.zh-CN.md)及
 [开发验证](docs/development.zh-CN.md)。真实数据、生成页面和截图不进入仓库，测试与CI仅用合成数据。
+
+点击“紧凑小窗”可使用窄窗口布局，查找板块后点击“关注选中板块”，最多固定观察 12 个板块。列表同时显示回放时点的 5／15／30 分钟增量，不完整窗口显示 —。浏览器允许存储时会记住观察列表和布局；名称只取选中日的名单，当日无数据的板块保留代码。本版是离线归档小部件，会醒目标出最新归档交易日，不监测实时采集，也不自动刷新。

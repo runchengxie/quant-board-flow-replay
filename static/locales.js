@@ -2,6 +2,13 @@
   "use strict";
   const catalogs = {
     en: {
+      "widget.sample": "Selected day’s last recorded minute: {time} (Shanghai)",
+      "widget.compact": "Compact window", "widget.archive": "Offline archive · Latest day {date} · Not connected to live collection",
+      "watch.title": "Watchlist", "watch.hint": "Fixed order · Changes at the replay cursor (CNY 100m) · — means an incomplete window or unavailable sector.",
+      "watch.empty": "Find a sector, then add it here. Up to 12 sectors; saved locally when browser storage is available.",
+      "watch.add": "Watch selected sector", "watch.remove": "Remove", "watch.watched": "Selected sector is watched",
+      "watch.full": "Watchlist full (12)", "watch.action": "Action", "watch.missing": "Unavailable on this day",
+
       "app.title": "Board flow replay", "app.kicker": "A-SHARE · LOCAL ARCHIVE",
       "app.subtitle": "Explore archived sector flows with an explicit historical cursor.",
       "notice.pit": "Post-close archive: hiding later points does not establish which values were available at that historical time. This is not a point-in-time signal backtest.",
@@ -39,6 +46,13 @@
       "chart.label": "Cumulative main net flow; missing samples and lunch breaks are not joined."
     },
     "zh-CN": {
+      "widget.sample": "选中日最后记录分钟：{time}（上海时间）",
+      "widget.compact": "紧凑小窗", "widget.archive": "离线归档 · 最新交易日 {date} · 未连接实时采集",
+      "watch.title": "固定观察列表", "watch.hint": "顺序固定 · 按回放时点计算增量（亿元）· — 表示窗口不完整或当日无该板块。",
+      "watch.empty": "先查找板块，再添加到这里。最多 12 个，浏览器允许存储时会在本机记住。",
+      "watch.add": "关注选中板块", "watch.remove": "移除", "watch.watched": "选中板块已关注",
+      "watch.full": "观察列表已满（12 个）", "watch.action": "操作", "watch.missing": "当日无数据",
+
       "app.title": "板块资金流回放", "app.kicker": "A 股 · 本地归档",
       "app.subtitle": "选择历史时点，查看已归档的板块资金流。",
       "notice.pit": "这是盘后归档。隐藏游标之后的数据，并不证明这些数值在当时已经可获取，不能据此做严格的时点信号回测。",

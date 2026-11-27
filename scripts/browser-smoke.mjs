@@ -98,6 +98,45 @@ try {
   assert.equal(await page.locator("html").getAttribute("lang"), "zh-CN");
   checks.push("Explicit selection stays fixed and language choice survives reload");
   await cursor(239);
+  await page.locator("#pin").click();
+  assert.equal(await page.locator("#watchlist tr").count(), 1);
+  const watched = await page.evaluate(() => {
+    const pin = JSON.parse(localStorage.getItem("board-flow-replay.watchlist"))[0];
+    const board = window.ARCHIVE_DAYS[document.querySelector("#day").value].boards.find(item => item.code === pin.code && item.type === pin.type);
+    return {pin, deltas: [5,15,30].map(n => board.values.slice(239-n,240).every(v => typeof v === "number" && Number.isFinite(v)) ? board.values[239]-board.values[239-n] : null)};
+  });
+  for (const [index, delta] of watched.deltas.entries()) {
+    const text = await page.locator("#watchlist tr td").nth(index+1).textContent();
+    const expected = delta === null ? "—" : `${delta > 0 ? "+" : ""}${new Intl.NumberFormat("zh-CN", {minimumFractionDigits:2,maximumFractionDigits:2}).format(delta/1e8)}`;
+    assert.equal(text, expected);
+  }
+  await page.locator("#compact").click();
+  await page.reload(); await ready(latest);
+  assert.equal(await page.locator("html").getAttribute("class"), "widget");
+  assert.equal(await page.locator("#watchlist tr").count(), 1);
+  assert.match(await page.locator("#archive-state").textContent(), /未连接实时采集/);
+  await page.locator("#watchlist tr td button").first().click();
+  assert.equal(await page.locator("#kind").inputValue(), watched.pin.type);
+  assert.match(await page.locator("#boardname").textContent(), new RegExp(watched.pin.code));
+  await cursor(40);
+  const unavailable = await page.evaluate(pin => {
+    const payload = window.ARCHIVE_DAYS[document.querySelector("#day").value];
+    const index = payload.boards.findIndex(b => b.code === pin.code && b.type === pin.type);
+    const board = payload.boards.splice(index,1)[0];
+    window.__removedBoard = {index,board};
+    document.querySelector("#minute").dispatchEvent(new Event("input"));
+    return document.querySelector("#watchlist tr").textContent;
+  }, watched.pin);
+  assert.match(unavailable, /当日无数据/);
+  assert.equal(await page.locator("#watchlist tr td").nth(1).textContent(), "—");
+  await page.evaluate(() => {
+    const removed = window.__removedBoard;
+    window.ARCHIVE_DAYS[document.querySelector("#day").value].boards.splice(removed.index,0,removed.board);
+    delete window.__removedBoard;
+    document.querySelector("#minute").dispatchEvent(new Event("input"));
+  });
+  checks.push("Watchlist 5/15/30 signed deltas, identity persistence, cross-category selection, missing-board preservation and compact mode reload");
+  await cursor(239);
   await page.screenshot({path: path.join(output, "desktop.png"), fullPage: true});
   await page.setViewportSize({width: 390, height: 844});
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);

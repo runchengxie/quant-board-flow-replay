@@ -12,7 +12,7 @@ class Element {
 }
 const times=Array.from({length:240},(_,i)=>{const n=i<120?571+i:781+i-120;return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;});
 function setup(savedLanguage,customizePayload){
-  const ids=['day','kind','win','minute','lookup','ranking','chart','status','clock','language','mode','provenance','warning','boardname','value','scope','empty','boardlist','mode-hint'];
+  const ids=['day','kind','win','minute','lookup','ranking','chart','status','clock','language','mode','provenance','warning','boardname','value','scope','empty','boardlist','mode-hint','compact','pin','watchlist','watch-empty','archive-state'];
   const elements=Object.fromEntries(ids.map(id=>[id,new Element(['day','kind','win','language','mode'].includes(id)?'select':'div')]));
   elements.kind.value='concept';elements.win.value='15';elements.mode.value='asof';
   const values=Array(240).fill(1);values[239]=1e12;
@@ -65,4 +65,23 @@ test('a catalog captured after an as-of cursor gets a localized availability war
   assert.doesNotMatch(elements.warning.textContent,/名单.*晚于.*游标/);
   elements.minute.value='0';elements.minute.oninput();elements.mode.value='overview';elements.mode.onchange();
   assert.doesNotMatch(elements.warning.textContent,/名单.*晚于.*游标/);
+});
+
+test('pinning records identity only and removing a watch leaves selection fixed',async()=>{
+  const {elements,storage}=setup();await tick();
+  elements.pin.onclick();
+  assert.deepEqual(JSON.parse(storage.getItem('board-flow-replay.watchlist')),[{code:'BK1',type:'concept'}]);
+  assert.equal(elements.watchlist.children.length,1);
+  elements.minute.value='40';elements.minute.oninput();
+  assert.equal(elements.watchlist.children[0].children.length,5);
+  elements.watchlist.children[0].children[4].children[0].onclick();
+  assert.equal(elements.watchlist.children.length,0);assert.match(elements.boardname.textContent,/BK1/);
+});
+test('compact layout persists and archive state never claims live collection',async()=>{
+  const {elements,storage,document}=setup();await tick();
+  elements.compact.onclick();
+  assert.equal(storage.getItem('board-flow-replay.compact'),'true');
+  assert.equal(document.documentElement.className,'widget');
+  assert.match(elements['archive-state'].textContent,/not connected to live/i);
+  assert.match(elements['archive-state'].textContent,/2026-11-20/);
 });
