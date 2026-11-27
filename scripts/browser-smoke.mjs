@@ -52,6 +52,18 @@ try {
             new Intl.NumberFormat("en", {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(amount / 1e8));
           assert.deepEqual(observed.map(row => row.amount), text);
         }
+        const directions = await page.evaluate(({day, kind, minutes}) => {
+          const end = 239, start = end - minutes;
+          const rows = window.ARCHIVE_DAYS[day].boards.filter(b => b.type === kind &&
+            b.values.slice(start, end + 1).every(v => typeof v === "number" && Number.isFinite(v)))
+            .map(b => ({code: b.code, delta: b.values[end] - b.values[start]}));
+          const tie = (a,b) => a.code < b.code ? -1 : a.code > b.code ? 1 : 0;
+          return {inflows: rows.filter(r => r.delta > 0).sort((a,b) => b.delta-a.delta || tie(a,b)).slice(0,12).map(r=>r.code),
+            outflows: rows.filter(r => r.delta < 0).sort((a,b) => a.delta-b.delta || tie(a,b)).slice(0,12).map(r=>r.code)};
+        }, {day,kind,minutes});
+        for (const id of ["inflows", "outflows"]) {
+          assert.deepEqual(await page.locator(`#${id} button`).evaluateAll(buttons=>buttons.map(b=>b.dataset.code)), directions[id]);
+        }
         assert.ok(observed.length > 0, `No ${kind} ranking on ${day}`);
       }
     }
@@ -110,10 +122,48 @@ try {
     const expected = delta === null ? "—" : `${delta > 0 ? "+" : ""}${new Intl.NumberFormat("zh-CN", {minimumFractionDigits:2,maximumFractionDigits:2}).format(delta/1e8)}`;
     assert.equal(text, expected);
   }
+  const downloadEvent = page.waitForEvent("download");
+  await page.locator("#export-observation").click();
+  const download = await downloadEvent;
+  const exportedPath = path.join(output, download.suggestedFilename());
+  await download.saveAs(exportedPath);
+  const exported = JSON.parse(await fs.readFile(exportedPath, "utf8"));
+  assert.equal(exported.pointInTime, false); assert.equal(exported.rows[0].code, watched.pin.code);
+  assert.deepEqual([5,15,30].map(n=>exported.rows[0].deltas[n]), watched.deltas);
+  assert.equal(exported.archive.manifestSha256, meta.archive.manifestSha256);
+  assert.deepEqual({unit: exported.unit, deltas: [5,15,30].map(n=>exported.rows[0].deltas[n])},
+    {unit: "CNY", deltas: watched.deltas});
+  const amountCase = await page.evaluate(pin => {
+    const board = window.ARCHIVE_DAYS[document.querySelector("#day").value].boards.find(b=>b.code===pin.code&&b.type===pin.type);
+    const saved = [...board.values];
+    board.values.fill(0); board.values[239] = 100000000;
+    document.querySelector("#minute").dispatchEvent(new Event("input"));
+    return saved;
+  }, watched.pin);
+  const amountDownloadEvent = page.waitForEvent("download");
+  await page.locator("#export-observation").click();
+  const amountDownload = await amountDownloadEvent;
+  const amountPath = path.join(output, "unit-case-observation.json");
+  await amountDownload.saveAs(amountPath);
+  const amountRecord = JSON.parse(await fs.readFile(amountPath, "utf8"));
+  assert.deepEqual({unit: amountRecord.unit, deltas: [5,15,30].map(n=>amountRecord.rows[0].deltas[n])},
+    {unit: "CNY", deltas: [100000000,100000000,100000000]});
+  await page.evaluate(({pin, values}) => {
+    const board = window.ARCHIVE_DAYS[document.querySelector("#day").value].boards.find(b=>b.code===pin.code&&b.type===pin.type);
+    board.values = values;
+    document.querySelector("#minute").dispatchEvent(new Event("input"));
+  }, {pin: watched.pin, values: amountCase});
+  checks.push("Actual downloaded JSON pairs unit CNY with original yuan deltas, including a 100000000-yuan case");
+  checks.push("Downloaded fixed-watchlist JSON preserves 5/15/30 values, manifest and retrospective scope");
   await page.locator("#compact").click();
   await page.reload(); await ready(latest);
   assert.equal(await page.locator("html").getAttribute("class"), "widget");
   assert.equal(await page.locator("#watchlist tr").count(), 1);
+  assert.equal(await page.locator(".direction-panel").isVisible(), true);
+  await cursor(122);
+  assert.equal(await page.locator("#inflows tr").count(), 0);
+  assert.equal(await page.locator("#outflows tr").count(), 0);
+  checks.push("Directional tables match direct archive subtraction and remain visible in compact mode; lunch windows are excluded");
   assert.match(await page.locator("#archive-state").textContent(), /未连接实时采集/);
   await page.locator("#watchlist tr td button").first().click();
   assert.equal(await page.locator("#kind").inputValue(), watched.pin.type);

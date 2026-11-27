@@ -27,6 +27,11 @@
       .map(board => ({board, delta: board.values[cursor] - board.values[start]}))
       .sort((a, b) => b.delta - a.delta || byCode(a.board, b.board));
   }
+  function directionalRanks(boards, type, cursor, minutes, times) {
+    const ranked = rank(boards, type, cursor, minutes, times);
+    return {inflows: ranked.filter(row => row.delta > 0),
+      outflows: ranked.filter(row => row.delta < 0).sort((a, b) => a.delta - b.delta || byCode(a.board, b.board))};
+  }
   function normalizePins(value) {
     if (!Array.isArray(value)) return [];
     const result = [], seen = new Set();
@@ -51,6 +56,13 @@
       }
       return {...pin, board, deltas};
     });
+  }
+  function observationRecord({boards, pins, cursor, times, day, archive, provenance}) {
+    return {format: "board-flow-observation-v1", pointInTime: false,
+      purpose: "retrospective_fixed_watchlist_observation", day, cursor: times[cursor],
+      timezone: "Asia/Shanghai", unit: "CNY", archive, provenance,
+      rows: watchRows(boards, pins, cursor, times).map(row => ({type: row.type, code: row.code,
+        name: row.board?.name || null, available: Boolean(row.board), deltas: row.deltas}))};
   }
   function chartModel(board, cursor, mode) {
     const empty = {min: 0, max: 0, segments: [], current: null};
@@ -111,5 +123,5 @@
       }
     };
   }
-  root.ReplayModel = Object.freeze({windowStart, rank, chartModel, axisLabels, catalogAfterCursor, selectBoard, createDayLoader, normalizePins, watchRows});
+  root.ReplayModel = Object.freeze({windowStart, rank, directionalRanks, chartModel, axisLabels, catalogAfterCursor, selectBoard, createDayLoader, normalizePins, watchRows, observationRecord});
 })(window);

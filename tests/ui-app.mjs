@@ -12,7 +12,7 @@ class Element {
 }
 const times=Array.from({length:240},(_,i)=>{const n=i<120?571+i:781+i-120;return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;});
 function setup(savedLanguage,customizePayload){
-  const ids=['day','kind','win','minute','lookup','ranking','chart','status','clock','language','mode','provenance','warning','boardname','value','scope','empty','boardlist','mode-hint','compact','pin','watchlist','watch-empty','archive-state'];
+  const ids=['day','kind','win','minute','lookup','ranking','chart','status','clock','language','mode','provenance','warning','boardname','value','scope','empty','boardlist','mode-hint','compact','pin','watchlist','watch-empty','archive-state','inflows','outflows','inflows-empty','outflows-empty','export-observation'];
   const elements=Object.fromEntries(ids.map(id=>[id,new Element(['day','kind','win','language','mode'].includes(id)?'select':'div')]));
   elements.kind.value='concept';elements.win.value='15';elements.mode.value='asof';
   const values=Array(240).fill(1);values[239]=1e12;
@@ -84,4 +84,20 @@ test('compact layout persists and archive state never claims live collection',as
   assert.equal(document.documentElement.className,'widget');
   assert.match(elements['archive-state'].textContent,/not connected to live/i);
   assert.match(elements['archive-state'].textContent,/2026-11-20/);
+});
+
+test('both directional tables render strict signs and clear on an incomplete window',async()=>{
+  const {elements}=setup(undefined,payload=>{payload.boards[0].values=Array.from({length:240},(_,i)=>-i);payload.boards[1].values=Array.from({length:240},(_,i)=>i);});await tick();
+  elements.minute.value='40';elements.minute.oninput();
+  assert.equal(elements.inflows.children.length,1);assert.equal(elements.outflows.children.length,1);
+  assert.equal(elements.inflows.children[0].children[0].children[0].dataset.code,'BK1');
+  assert.equal(elements.outflows.children[0].children[0].children[0].dataset.code,'BK2');
+  elements.compact.onclick();assert.equal(elements.outflows.children.length,1);
+  elements.minute.value='122';elements.minute.oninput();
+  assert.equal(elements.outflows.children.length,0);assert.equal(elements['outflows-empty'].hidden,false);
+});
+
+test('export is enabled only for a loaded fixed watchlist',async()=>{
+ const {elements}=setup();await tick();assert.equal(elements['export-observation'].disabled,true);
+ elements.pin.onclick();assert.equal(elements['export-observation'].disabled,false);
 });

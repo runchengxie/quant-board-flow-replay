@@ -85,6 +85,7 @@
   }
   function renderWatchlist(cursor, selected) {
     const list = $("watchlist"); list.replaceChildren();
+    $("export-observation").disabled = phase !== "ready" || pins.length === 0;
     const watched = selected && pins.some(pin => pin.type === selected.type && pin.code === selected.code);
     $("pin").disabled = !selected || watched || pins.length >= 12;
     $("pin").textContent = t(watched ? "watch.watched" : pins.length >= 12 ? "watch.full" : "watch.add");
@@ -111,6 +112,16 @@
       action.append(remove); tr.append(action); list.append(tr);
     }
   }
+  function renderRanking(id, rows, selected) {
+    for (const row of rows.slice(0, 12)) {
+      const tr = node("tr"), td = node("td"), button = node("button", displayName(row.board));
+      button.type = "button"; button.dataset.code = row.board.code;
+      button.setAttribute("aria-pressed", String(selected?.code === row.board.code));
+      button.onclick = () => { persistSelection(row.board.type, row.board.code); render(); };
+      td.append(button); tr.append(td, node("td", `${row.delta > 0 ? "+" : ""}${money(row.delta)}`, row.delta > 0 ? "positive" : row.delta < 0 ? "negative" : ""));
+      $(id).append(tr);
+    }
+  }
   function render() {
     const cursor = Number(ui.minute.value), minutes = Number(ui.win.value), type = ui.kind.value;
     document.documentElement.className = compact ? "widget" : "";
@@ -119,7 +130,9 @@
       (lastSample ? ` · ${t("widget.sample", {time: i18n.formatTimestamp(locale, lastSample)})}` : "");
     $("clock").textContent = `${meta.times[cursor]} · ${t("unit.minutes", {count: minutes})}`;
     $("mode-hint").textContent = t(ui.mode.value === "overview" ? "mode.overviewHint" : "mode.asofHint");
-    $("ranking").replaceChildren(); $("warning").hidden = true; $("empty").hidden = true;
+    for (const id of ["ranking", "inflows", "outflows"]) $(id).replaceChildren();
+    for (const id of ["inflows", "outflows"]) $(`${id}-empty`).hidden = false;
+    $("warning").hidden = true; $("empty").hidden = true;
     if (phase !== "ready" || !payload) {
       $("status").textContent = t(phase === "failed" ? "status.failed" : "status.loading", {date: ui.day.value});
       $("scope").textContent = ""; renderWatchlist(cursor, null); renderChart(null, cursor); renderProvenance(); return;
@@ -144,13 +157,11 @@
     if (selected && selected.values.slice(0, through).some(value => value === null)) warnings.push(t("warning.gaps"));
     if (payload.warnings?.length && payload.hasCatalog) warnings.push(t("warning.archive"));
     $("warning").textContent = warnings.join("\n"); $("warning").hidden = !warnings.length;
-    for (const row of ranked.slice(0, 12)) {
-      const tr = node("tr"), td = node("td"), button = node("button", displayName(row.board));
-      button.type = "button"; button.dataset.code = row.board.code;
-      button.setAttribute("aria-pressed", String(selected?.code === row.board.code));
-      button.onclick = () => { persistSelection(type, row.board.code); render(); };
-      td.append(button); tr.append(td, node("td", `${row.delta > 0 ? "+" : ""}${money(row.delta)}`, row.delta > 0 ? "positive" : row.delta < 0 ? "negative" : ""));
-      $("ranking").append(tr);
+    renderRanking("ranking", ranked, selected);
+    const directions = model.directionalRanks(payload.boards, type, cursor, minutes, meta.times);
+    for (const id of ["inflows", "outflows"]) {
+      renderRanking(id, directions[id], selected);
+      $(`${id}-empty`).hidden = directions[id].length > 0;
     }
     $("empty").hidden = ranked.length > 0;
     renderChart(selected, cursor); renderProvenance();
@@ -205,6 +216,15 @@
     if (selected && pins.length < 12 && !pins.some(pin => pin.type === selected.type && pin.code === selected.code)) {
       pins = model.normalizePins([...pins, {code: selected.code, type: selected.type}]); savePins(); render();
     }
+  };
+  $("export-observation").onclick = () => {
+    if (phase !== "ready" || !payload || !pins.length) return;
+    const record = model.observationRecord({boards: payload.boards, pins, cursor: Number(ui.minute.value),
+      times: meta.times, day: ui.day.value, archive: meta.archive || {}, provenance: payload.provenance || {}});
+    const url = URL.createObjectURL(new Blob([JSON.stringify(record, null, 2) + "\n"], {type: "application/json"}));
+    const link = node("a"); link.href = url;
+    link.download = `board-flow-observation-${record.day}-${record.cursor.replace(":", "")}.json`;
+    link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   translate(); loadDay();
 })();
