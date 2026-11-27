@@ -48,7 +48,9 @@ order, same-day names, all 5/15/30-minute changes, unavailable values as `null`,
 archive manifest identity and available collection provenance. Early-session,
 missing and lunch-crossing windows stay unavailable. These are backward-looking
 flow differences ending at the cursor, not forward returns. Exports always use
-stable machine keys, yuan divided by 100 million, and Shanghai clock times.
+stable machine keys, original yuan amounts (`unit: "CNY"`), and Shanghai clock times.
+For example, an exported delta of `100000000` means CNY 100 million; the page
+displays the same amount as `1.00` in its CNY 100m scale.
 
 Keep the downloads, original plan and a short dated interpretation under your
 project's external data directory. Record gaps, catalog timing, deviations from

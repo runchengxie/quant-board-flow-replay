@@ -147,8 +147,14 @@ test('directional ranks split strict signs, keep code ties and inherit complete 
 test('observation export preserves fixed identities, gaps and provenance with retrospective scope',()=>{
   const record=model('observationRecord')({boards:[board('BK1',Array.from({length:240},(_,i)=>i))],pins:[{type:'concept',code:'BK1'},{type:'concept',code:'BK8'}],cursor:40,times,day:'2026-11-20',archive:{manifestSha256:'abc'},provenance:{sources:['synthetic']}});
   assert.equal(record.format,'board-flow-observation-v1');assert.equal(record.pointInTime,false);
-  assert.equal(record.cursor,'10:11');assert.equal(record.timezone,'Asia/Shanghai');assert.equal(record.unit,'CNY_100m');
+  assert.equal(record.cursor,'10:11');assert.equal(record.timezone,'Asia/Shanghai');assert.equal(record.unit,'CNY');
   assert.deepEqual(plain(record.rows[0].deltas),{'5':5,'15':15,'30':30});
   assert.deepEqual(plain(record.rows[1].deltas),{'5':null,'15':null,'30':null});
   assert.equal(record.archive.manifestSha256,'abc');assert.equal(record.rows[0].code,'BK1');
+});
+
+test('observation export pairs CNY with original yuan amounts, including one hundred million',()=>{
+  const values=Array(240).fill(0);values[40]=100000000;
+  const record=model('observationRecord')({boards:[board('BK1',values)],pins:[{type:'concept',code:'BK1'}],cursor:40,times,day:'2026-11-20',archive:{},provenance:{}});
+  assert.deepEqual(plain({unit:record.unit,deltas:record.rows[0].deltas}),{unit:'CNY',deltas:{'5':100000000,'15':100000000,'30':100000000}});
 });

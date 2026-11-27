@@ -60,7 +60,7 @@
   function observationRecord({boards, pins, cursor, times, day, archive, provenance}) {
     return {format: "board-flow-observation-v1", pointInTime: false,
       purpose: "retrospective_fixed_watchlist_observation", day, cursor: times[cursor],
-      timezone: "Asia/Shanghai", unit: "CNY_100m", archive, provenance,
+      timezone: "Asia/Shanghai", unit: "CNY", archive, provenance,
       rows: watchRows(boards, pins, cursor, times).map(row => ({type: row.type, code: row.code,
         name: row.board?.name || null, available: Boolean(row.board), deltas: row.deltas}))};
   }

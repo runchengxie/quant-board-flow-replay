@@ -131,6 +131,29 @@ try {
   assert.equal(exported.pointInTime, false); assert.equal(exported.rows[0].code, watched.pin.code);
   assert.deepEqual([5,15,30].map(n=>exported.rows[0].deltas[n]), watched.deltas);
   assert.equal(exported.archive.manifestSha256, meta.archive.manifestSha256);
+  assert.deepEqual({unit: exported.unit, deltas: [5,15,30].map(n=>exported.rows[0].deltas[n])},
+    {unit: "CNY", deltas: watched.deltas});
+  const amountCase = await page.evaluate(pin => {
+    const board = window.ARCHIVE_DAYS[document.querySelector("#day").value].boards.find(b=>b.code===pin.code&&b.type===pin.type);
+    const saved = [...board.values];
+    board.values.fill(0); board.values[239] = 100000000;
+    document.querySelector("#minute").dispatchEvent(new Event("input"));
+    return saved;
+  }, watched.pin);
+  const amountDownloadEvent = page.waitForEvent("download");
+  await page.locator("#export-observation").click();
+  const amountDownload = await amountDownloadEvent;
+  const amountPath = path.join(output, "unit-case-observation.json");
+  await amountDownload.saveAs(amountPath);
+  const amountRecord = JSON.parse(await fs.readFile(amountPath, "utf8"));
+  assert.deepEqual({unit: amountRecord.unit, deltas: [5,15,30].map(n=>amountRecord.rows[0].deltas[n])},
+    {unit: "CNY", deltas: [100000000,100000000,100000000]});
+  await page.evaluate(({pin, values}) => {
+    const board = window.ARCHIVE_DAYS[document.querySelector("#day").value].boards.find(b=>b.code===pin.code&&b.type===pin.type);
+    board.values = values;
+    document.querySelector("#minute").dispatchEvent(new Event("input"));
+  }, {pin: watched.pin, values: amountCase});
+  checks.push("Actual downloaded JSON pairs unit CNY with original yuan deltas, including a 100000000-yuan case");
   checks.push("Downloaded fixed-watchlist JSON preserves 5/15/30 values, manifest and retrospective scope");
   await page.locator("#compact").click();
   await page.reload(); await ready(latest);
