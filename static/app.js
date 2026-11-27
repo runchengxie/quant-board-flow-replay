@@ -5,13 +5,22 @@
   const ui = Object.fromEntries(["day", "kind", "win", "minute", "lookup", "language", "mode"].map(id => [id, $(id)]));
   let storage = null;
   try { storage = window.localStorage; } catch (_) { /* Local files may deny storage. */ }
-  let locale = i18n.chooseLocale(storage), payload = null, phase = "loading";
+  let locale = i18n.chooseLocale(storage), payload = null, phase = "loading", lastSample = null;
   const selectedKey = "board-flow-replay.selected-codes";
   let selectedCodes = {};
   try {
     const saved = storage && JSON.parse(storage.getItem(selectedKey));
     if (saved && typeof saved === "object" && !Array.isArray(saved)) selectedCodes = saved;
   } catch (_) { /* A stored preference is optional. */ }
+  const watchKey = "board-flow-replay.watchlist", compactKey = "board-flow-replay.compact";
+  let pins = [], compact = false;
+  try {
+    pins = model.normalizePins(storage && JSON.parse(storage.getItem(watchKey)));
+    compact = storage?.getItem(compactKey) === "true";
+  } catch (_) { /* Preferences are optional. */ }
+  function savePins() {
+    try { if (storage) storage.setItem(watchKey, JSON.stringify(pins)); } catch (_) { /* Keep in memory. */ }
+  }
   const t = (key, values) => i18n.message(locale, key, values);
   const count = value => i18n.formatCount(locale, value);
   const money = value => i18n.formatMoney(locale, value);
@@ -74,18 +83,51 @@
     ];
     for (const [key, value] of entries) list.append(node("dt", t(key)), node("dd", value));
   }
+  function renderWatchlist(cursor, selected) {
+    const list = $("watchlist"); list.replaceChildren();
+    const watched = selected && pins.some(pin => pin.type === selected.type && pin.code === selected.code);
+    $("pin").disabled = !selected || watched || pins.length >= 12;
+    $("pin").textContent = t(watched ? "watch.watched" : pins.length >= 12 ? "watch.full" : "watch.add");
+    $("watch-empty").hidden = pins.length > 0;
+    for (const row of model.watchRows(payload?.boards || [], pins, cursor, meta.times)) {
+      const tr = node("tr"), identity = node("td");
+      const button = node("button", row.board ? displayName(row.board) : row.code);
+      button.type = "button"; button.disabled = !row.board;
+      button.onclick = () => {
+        ui.kind.value = row.type; persistSelection(row.type, row.code); listBoards(); render();
+      };
+      identity.append(button);
+      if (!row.board) identity.append(node("span", t("watch.missing"), "hint"));
+      tr.append(identity);
+      for (const minutes of [5, 15, 30]) {
+        const delta = row.deltas[minutes];
+        tr.append(node("td", delta === null ? "—" : `${delta > 0 ? "+" : ""}${money(delta)}`,
+          delta > 0 ? "positive" : delta < 0 ? "negative" : ""));
+      }
+      const action = node("td"), remove = node("button", t("watch.remove"));
+      remove.type = "button";
+      remove.setAttribute("aria-label", `${t("watch.remove")} ${row.code}`);
+      remove.onclick = () => { pins = pins.filter(pin => pin.code !== row.code || pin.type !== row.type); savePins(); render(); };
+      action.append(remove); tr.append(action); list.append(tr);
+    }
+  }
   function render() {
     const cursor = Number(ui.minute.value), minutes = Number(ui.win.value), type = ui.kind.value;
+    document.documentElement.className = compact ? "widget" : "";
+    $("compact").setAttribute("aria-pressed", String(compact));
+    $("archive-state").textContent = t("widget.archive", {date: [...meta.dates].sort().at(-1) || t("value.unknown")}) +
+      (lastSample ? ` · ${t("widget.sample", {time: i18n.formatTimestamp(locale, lastSample)})}` : "");
     $("clock").textContent = `${meta.times[cursor]} · ${t("unit.minutes", {count: minutes})}`;
     $("mode-hint").textContent = t(ui.mode.value === "overview" ? "mode.overviewHint" : "mode.asofHint");
     $("ranking").replaceChildren(); $("warning").hidden = true; $("empty").hidden = true;
     if (phase !== "ready" || !payload) {
       $("status").textContent = t(phase === "failed" ? "status.failed" : "status.loading", {date: ui.day.value});
-      $("scope").textContent = ""; renderChart(null, cursor); renderProvenance(); return;
+      $("scope").textContent = ""; renderWatchlist(cursor, null); renderChart(null, cursor); renderProvenance(); return;
     }
     const ranked = model.rank(payload.boards, type, cursor, minutes, meta.times);
     const selected = model.selectBoard(payload.boards, type, selectedCodes[type]);
     if (selected) persistSelection(type, selected.code);
+    renderWatchlist(cursor, selected);
     const start = model.windowStart(meta.times, cursor, minutes);
     $("scope").textContent = start < 0 ? t("status.noWindow") : t("status.scope", {start: meta.times[start], end: meta.times[cursor], count: count(ranked.length)});
     const observed = payload.counts[type] || {observedPoints: 0, expectedBoards: null};
@@ -131,11 +173,14 @@
     document.head.append(script);
   }), window.ARCHIVE_DAYS);
   async function loadDay() {
-    payload = null; phase = "loading"; ui.minute.value = "0"; ui.lookup.value = ""; listBoards(); render();
+    payload = null; lastSample = null; phase = "loading"; ui.minute.value = "0"; ui.lookup.value = ""; listBoards(); render();
     try {
       const result = await loader.load(ui.day.value);
       if (result.stale) return;
-      payload = result.payload; phase = "ready"; listBoards(); render();
+      payload = result.payload;
+      const last = payload.boards.reduce((latest, board) => Math.max(latest, board.values.findLastIndex(Number.isFinite)), -1);
+      lastSample = last < 0 ? null : `${result.date}T${meta.times[last]}:00+08:00`;
+      phase = "ready"; listBoards(); render();
     } catch (_) { phase = "failed"; payload = null; listBoards(); render(); }
   }
   ui.day.replaceChildren(...[...meta.dates].reverse().map(date => option(date, date)));
@@ -148,6 +193,18 @@
     const board = payload?.boards.find(item => item.type === ui.kind.value && (item.code.toLowerCase() === value || item.name.toLowerCase() === value));
     if (board) { persistSelection(ui.kind.value, board.code); render(); }
     else if (value) $("value").textContent = t("status.notFound");
+  };
+  $("compact").onclick = () => {
+    compact = !compact;
+    try { if (storage) storage.setItem(compactKey, String(compact)); } catch (_) { /* Optional storage. */ }
+    render();
+  };
+  $("pin").onclick = () => {
+    if (phase !== "ready") return;
+    const selected = model.selectBoard(payload.boards, ui.kind.value, selectedCodes[ui.kind.value]);
+    if (selected && pins.length < 12 && !pins.some(pin => pin.type === selected.type && pin.code === selected.code)) {
+      pins = model.normalizePins([...pins, {code: selected.code, type: selected.type}]); savePins(); render();
+    }
   };
   translate(); loadDay();
 })();

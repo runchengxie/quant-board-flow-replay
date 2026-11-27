@@ -18,6 +18,8 @@
       <select id="language"><option value="en">English</option><option value="zh-CN">简体中文</option></select>
     </label>
   </header>
+  <div class="widget-toolbar"><button id="compact" type="button" aria-pressed="false" data-i18n="widget.compact"></button></div>
+  <p id="archive-state" class="archive-state" role="status"></p>
   <p class="notice" data-i18n="notice.pit"></p>
   <section class="controls">
     <label><span data-i18n="control.day"></span><select id="day"></select></label>
@@ -42,6 +44,16 @@
   <p id="mode-hint" class="hint"></p>
   <p id="status" class="status" role="status" aria-live="polite"></p>
   <p id="warning" class="warning" role="status" hidden></p>
+  <section class="panel watch-panel">
+    <div class="watch-heading"><h2 data-i18n="watch.title"></h2><button id="pin" type="button"></button></div>
+    <p class="hint" data-i18n="watch.hint"></p>
+    <div class="watch-scroll"><table class="watch-table"><thead><tr>
+      <th data-i18n="table.board"></th><th data-i18n="unit.minutes" data-count="5"></th>
+      <th data-i18n="unit.minutes" data-count="15"></th><th data-i18n="unit.minutes" data-count="30"></th>
+      <th data-i18n="watch.action"></th>
+    </tr></thead><tbody id="watchlist"></tbody></table></div>
+    <p id="watch-empty" class="hint" data-i18n="watch.empty"></p>
+  </section>
   <div class="panels">
     <section class="panel ranking-panel">
       <h2 data-i18n="section.ranking"></h2>
