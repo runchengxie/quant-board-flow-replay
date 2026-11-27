@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "quant-board-flow-replay"
+version = "0.1.0"
+description = "Offline board fund-flow archive replay with explicit provenance"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["pyarrow>=18,<27", "tzdata>=2025.1"]
+
+[project.scripts]
+board-flow-replay = "board_flow_replay.cli:main"
+
+[dependency-groups]
+dev = ["ruff>=0.11,<1", "ty>=0.0.1,<1", "pip-audit>=2.9,<3"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/board_flow_replay"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"static" = "board_flow_replay/static"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ty.environment]
+python-version = "3.12"
