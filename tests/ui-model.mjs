@@ -132,3 +132,23 @@ test('saved watchlist accepts bounded unique identities, never stored historical
   assert.equal(normalize(Array.from({length:30},(_,i)=>({code:`BK${i}`,type:'industry'}))).length,12);
   assert.deepEqual(plain(normalize({bad:true})),[]);
 });
+
+test('directional ranks split strict signs, keep code ties and inherit complete as-of windows', () => {
+  const data = [['BK4',-5],['BK2',5],['BK1',5],['BK3',0],['BK5',-5]].map(([code,delta]) => board(code,Array.from({length:240},(_,i)=>i<=5?i*delta:9e12)));
+  const directions = model('directionalRanks')(data,'concept',5,5,times);
+  assert.deepEqual(plain(directions.inflows.map(row=>row.board.code)),['BK1','BK2']);
+  assert.deepEqual(plain(directions.outflows.map(row=>row.board.code)),['BK4','BK5']);
+  assert.deepEqual(plain(model('directionalRanks')(data.slice(1,3),'concept',5,5,times).outflows),[]);
+  data[0].values[2]=null;
+  assert.deepEqual(plain(model('directionalRanks')(data,'concept',5,5,times).outflows.map(row=>row.board.code)),['BK5']);
+  assert.deepEqual(plain(model('directionalRanks')(data,'concept',122,5,times)),{inflows:[],outflows:[]});
+});
+
+test('observation export preserves fixed identities, gaps and provenance with retrospective scope',()=>{
+  const record=model('observationRecord')({boards:[board('BK1',Array.from({length:240},(_,i)=>i))],pins:[{type:'concept',code:'BK1'},{type:'concept',code:'BK8'}],cursor:40,times,day:'2026-11-20',archive:{manifestSha256:'abc'},provenance:{sources:['synthetic']}});
+  assert.equal(record.format,'board-flow-observation-v1');assert.equal(record.pointInTime,false);
+  assert.equal(record.cursor,'10:11');assert.equal(record.timezone,'Asia/Shanghai');assert.equal(record.unit,'CNY_100m');
+  assert.deepEqual(plain(record.rows[0].deltas),{'5':5,'15':15,'30':30});
+  assert.deepEqual(plain(record.rows[1].deltas),{'5':null,'15':null,'30':null});
+  assert.equal(record.archive.manifestSha256,'abc');assert.equal(record.rows[0].code,'BK1');
+});

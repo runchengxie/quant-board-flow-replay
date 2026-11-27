@@ -2,6 +2,12 @@
   "use strict";
   const catalogs = {
     en: {
+      "watch.export": "Export observation JSON",
+      "watch.research": "Choose the watchlist and observation times in advance. Export saves current 5/15/30-minute changes and archive provenance; it does not prove the list was precommitted or validate returns or live signals.",
+      "direction.title": "Largest inflows and outflows",
+      "direction.hint": "Top 12 per direction · Selected type and lookback · Positive changes descend; negative changes ascend. Zero and incomplete windows are excluded.",
+      "direction.inflows": "Largest inflows", "direction.outflows": "Largest outflows",
+      "direction.empty": "No eligible changes in this direction at this cursor.",
       "widget.sample": "Selected day’s last recorded minute: {time} (Shanghai)",
       "widget.compact": "Compact window", "widget.archive": "Offline archive · Latest day {date} · Not connected to live collection",
       "watch.title": "Watchlist", "watch.hint": "Fixed order · Changes at the replay cursor (CNY 100m) · — means an incomplete window or unavailable sector.",
@@ -46,6 +52,12 @@
       "chart.label": "Cumulative main net flow; missing samples and lunch breaks are not joined."
     },
     "zh-CN": {
+      "watch.export": "导出观察记录 JSON",
+      "watch.research": "请提前确定观察名单和观察时刻。导出包含当前5/15/30分钟增量及归档来源；不能证明名单曾提前锁定，也不构成收益或真实信号验收。",
+      "direction.title": "流入最多与流出最多",
+      "direction.hint": "各取前12名 · 当前类别与回看窗口 · 正增量从大到小，负增量从小到大；零值及不完整窗口不入榜。",
+      "direction.inflows": "流入最多", "direction.outflows": "流出最多",
+      "direction.empty": "当前游标下，该方向暂无符合条件的增量。",
       "widget.sample": "选中日最后记录分钟：{time}（上海时间）",
       "widget.compact": "紧凑小窗", "widget.archive": "离线归档 · 最新交易日 {date} · 未连接实时采集",
       "watch.title": "固定观察列表", "watch.hint": "顺序固定 · 按回放时点计算增量（亿元）· — 表示窗口不完整或当日无该板块。",

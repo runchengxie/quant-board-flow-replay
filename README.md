@@ -36,3 +36,5 @@ and [development checks](docs/development.md). Real data and generated pages sta
 outside this repository; examples and CI fixtures are invented.
 
 Use **Compact window** for a narrow view and **Watch selected sector** to keep up to 12 sector identities in a fixed order. The watchlist shows 5/15/30-minute changes at the replay cursor; incomplete windows remain —. Preferences stay in browser storage when available. Names always come from the selected day, and missing sectors remain listed by code. This is an offline archive widget, with the latest archived day shown prominently; it does not monitor live collection or refresh itself.
+
+Use the two directional rankings and export fixed watchlist observations for a documented retrospective review. See [the research workflow](docs/usage.md#fixed-watchlist-observations).
